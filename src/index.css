@@ -141,13 +141,15 @@ small {
 .topo nav {
   display: flex;
   gap: 0.25rem;
+  overflow-x: auto;
 }
 
 .topo nav a {
   flex: 1 1 auto;
-  padding: 0.55rem 0.75rem;
+  padding: 0.55rem 0.6rem;
   text-align: center;
-  font-size: 0.95rem;
+  white-space: nowrap;
+  font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
   color: var(--texto-suave);
@@ -281,6 +283,7 @@ input::placeholder {
 
 .lista-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -292,6 +295,7 @@ input::placeholder {
 
 .lista-item > div {
   display: grid;
+  flex: 1 1 10rem;
   min-width: 0;
 }
 
@@ -327,4 +331,35 @@ input::placeholder {
 .msg-aviso {
   color: var(--just-texto);
   background: var(--just-fundo);
+}
+
+.lista-item.inativo {
+  opacity: 0.75;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.acoes > button[type='submit'] {
+  flex: 1;
+}
+
+.cartao-titulo {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.filtro-linha {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.check-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }

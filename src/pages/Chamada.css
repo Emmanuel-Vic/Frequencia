@@ -116,3 +116,41 @@
   color: var(--falta-texto);
   background: var(--falta-fundo);
 }
+
+.chamada-excluir {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.historico {
+  margin-top: 2rem;
+}
+
+.historico-lista {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historico-item {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+}
+
+.historico-item.atual {
+  border: 2px solid var(--primaria);
+}
+
+.historico-data {
+  font-weight: 700;
+}
+
+.historico-detalhe {
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}

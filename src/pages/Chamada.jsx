@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import './Chamada.css'
 
@@ -18,6 +19,10 @@ function hoje() {
   return `${d.getFullYear()}-${mes}-${dia}`
 }
 
+function formatarData(iso) {
+  return iso.split('-').reverse().join('/')
+}
+
 export default function Chamada() {
   const [turmas, setTurmas] = useState([])
   const [turmaId, setTurmaId] = useState('')
@@ -25,24 +30,35 @@ export default function Chamada() {
   const [tema, setTema] = useState('')
   const [alunos, setAlunos] = useState([])
   const [status, setStatus] = useState({}) // { idDoAluno: 'presente' | 'falta' | 'justificada' }
-  const [jaSalva, setJaSalva] = useState(false)
+  const [encontroId, setEncontroId] = useState(null) // id do encontro salvo (se houver)
+  const [alterado, setAlterado] = useState(false) // há marcações ainda não salvas?
+  const [historico, setHistorico] = useState([])
+  const [versao, setVersao] = useState(0) // aumenta quando o histórico precisa recarregar
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
   const [mensagem, setMensagem] = useState(null) // { tipo: 'ok' | 'erro', texto }
 
-  // 1) Carrega as turmas uma vez
+  const jaSalva = encontroId !== null
+
+  // 1) Carrega as turmas ativas uma vez
   useEffect(() => {
     async function carregarTurmas() {
       const { data: lista, error } = await supabase
         .from('turmas')
         .select('id, nome')
+        .eq('ativa', true)
         .order('nome')
-
-      console.log('turmas:', lista, 'erro:', error)  
 
       if (error) {
         console.error(error)
-        setMensagem({ tipo: 'erro', texto: 'Não foi possível carregar as turmas.' })
+        setMensagem({
+          tipo: 'erro',
+          texto:
+            error.code === '42703'
+              ? 'Falta a coluna "ativa" na tabela turmas. Rode o SQL indicado no Supabase.'
+              : 'Não foi possível carregar as turmas.',
+        })
         setCarregando(false)
         return
       }
@@ -107,7 +123,8 @@ export default function Chamada() {
       setAlunos(lista)
       setStatus(Object.fromEntries(lista.map((a) => [a.id, salvos[a.id] ?? 'presente'])))
       setTema(encontro?.tema ?? '')
-      setJaSalva(Boolean(encontro))
+      setEncontroId(encontro?.id ?? null)
+      setAlterado(false)
       setCarregando(false)
     }
 
@@ -117,13 +134,67 @@ export default function Chamada() {
     }
   }, [turmaId, data])
 
+  // 3) Histórico: as últimas chamadas salvas da turma
+  useEffect(() => {
+    if (!turmaId) return
+    let cancelado = false
+
+    async function carregarHistorico() {
+      const { data: lista, error } = await supabase
+        .from('encontros')
+        .select('id, data, tema, presencas(status)')
+        .eq('turma_id', turmaId)
+        .order('data', { ascending: false })
+        .limit(10)
+
+      if (cancelado) return
+      if (error) {
+        console.error(error)
+        return
+      }
+
+      setHistorico(
+        lista.map((e) => ({
+          id: e.id,
+          data: e.data,
+          tema: e.tema,
+          presentes: e.presencas.filter((p) => p.status === 'presente').length,
+          faltas: e.presencas.filter((p) => p.status === 'falta').length,
+          justificadas: e.presencas.filter((p) => p.status === 'justificada').length,
+        }))
+      )
+    }
+
+    carregarHistorico()
+    return () => {
+      cancelado = true
+    }
+  }, [turmaId, versao])
+
+  // Evita perder marcações por engano ao trocar de turma ou de data
+  function podeDescartar() {
+    return !alterado || window.confirm('Há marcações que ainda não foram salvas. Descartar e continuar?')
+  }
+
+  function trocarTurma(id) {
+    if (id === turmaId || !podeDescartar()) return
+    setTurmaId(id)
+  }
+
+  function trocarData(novaData) {
+    if (!novaData || novaData === data || !podeDescartar()) return
+    setData(novaData)
+  }
+
   function alternar(id) {
     setMensagem(null)
+    setAlterado(true)
     setStatus((s) => ({ ...s, [id]: CICLO[s[id]] }))
   }
 
   function marcarTodos(valor) {
     setMensagem(null)
+    setAlterado(true)
     setStatus(Object.fromEntries(alunos.map((a) => [a.id, valor])))
   }
 
@@ -169,20 +240,59 @@ export default function Chamada() {
       return
     }
 
-    setJaSalva(true)
+    setEncontroId(encontro.id)
+    setAlterado(false)
+    setVersao((v) => v + 1)
     setMensagem({ tipo: 'ok', texto: 'Chamada salva.' })
+  }
+
+  async function excluir() {
+    if (!encontroId) return
+
+    const ok = window.confirm(
+      `Excluir a chamada de ${formatarData(data)}? As marcações deste dia serão apagadas.`
+    )
+    if (!ok) return
+
+    setExcluindo(true)
+    setMensagem(null)
+
+    // As presenças são apagadas junto (on delete cascade)
+    const { error } = await supabase.from('encontros').delete().eq('id', encontroId)
+
+    setExcluindo(false)
+
+    if (error) {
+      console.error(error)
+      setMensagem({ tipo: 'erro', texto: 'Erro ao excluir a chamada. Tente de novo.' })
+      return
+    }
+
+    setStatus(Object.fromEntries(alunos.map((a) => [a.id, 'presente'])))
+    setTema('')
+    setEncontroId(null)
+    setAlterado(false)
+    setVersao((v) => v + 1)
+    setMensagem({ tipo: 'ok', texto: 'Chamada excluída.' })
   }
 
   const total = alunos.length
   const presentes = alunos.filter((a) => status[a.id] === 'presente').length
   const faltas = alunos.filter((a) => status[a.id] === 'falta').length
   const justificadas = alunos.filter((a) => status[a.id] === 'justificada').length
+  const ocupado = salvando || excluindo
 
   if (!carregando && turmas.length === 0) {
     return (
       <section className="chamada">
         <h1>Chamada</h1>
-        <p>Nenhuma turma cadastrada. Crie uma turma no Supabase para começar.</p>
+        {mensagem ? (
+          <p className="chamada-msg chamada-msg-erro">{mensagem.texto}</p>
+        ) : (
+          <p>
+            Nenhuma turma ativa. Crie uma na tela <Link to="/turmas">Turmas</Link>.
+          </p>
+        )}
       </section>
     )
   }
@@ -194,7 +304,7 @@ export default function Chamada() {
       <div className="chamada-filtros">
         <label>
           Turma
-          <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>
+          <select value={turmaId} onChange={(e) => trocarTurma(e.target.value)}>
             {turmas.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.nome}
@@ -205,7 +315,7 @@ export default function Chamada() {
 
         <label>
           Data do encontro
-          <input type="date" value={data} onChange={(e) => setData(e.target.value)} required />
+          <input type="date" value={data} onChange={(e) => trocarData(e.target.value)} required />
         </label>
 
         <label>
@@ -214,7 +324,10 @@ export default function Chamada() {
             type="text"
             value={tema}
             placeholder="Ex.: Os sacramentos"
-            onChange={(e) => setTema(e.target.value)}
+            onChange={(e) => {
+              setTema(e.target.value)
+              setAlterado(true)
+            }}
           />
         </label>
       </div>
@@ -226,12 +339,17 @@ export default function Chamada() {
       {carregando ? (
         <p>Carregando...</p>
       ) : total === 0 ? (
-        <p>Esta turma ainda não tem catequizandos ativos. Cadastre na tela Catequizandos.</p>
+        <p>
+          Esta turma ainda não tem catequizandos ativos. Cadastre na tela{' '}
+          <Link to="/catequizandos">Catequizandos</Link>.
+        </p>
       ) : (
         <>
           <p className="chamada-resumo">
             {presentes} presentes · {faltas} faltas · {justificadas} justificadas (de {total})
           </p>
+
+          {alterado && <p className="chamada-aviso">Há marcações que ainda não foram salvas.</p>}
 
           <div className="chamada-atalhos">
             <button type="button" onClick={() => marcarTodos('presente')}>
@@ -257,9 +375,20 @@ export default function Chamada() {
             ))}
           </ul>
 
-          <button type="button" className="chamada-salvar" onClick={salvar} disabled={salvando}>
-            {salvando ? 'Salvando...' : 'Salvar chamada'}
+          <button type="button" className="chamada-salvar" onClick={salvar} disabled={ocupado}>
+            {salvando ? 'Salvando...' : jaSalva ? 'Atualizar chamada' : 'Salvar chamada'}
           </button>
+
+          {jaSalva && (
+            <button
+              type="button"
+              className="botao-perigo chamada-excluir"
+              onClick={excluir}
+              disabled={ocupado}
+            >
+              {excluindo ? 'Excluindo...' : 'Excluir esta chamada'}
+            </button>
+          )}
         </>
       )}
 
@@ -267,6 +396,31 @@ export default function Chamada() {
         <p className={`chamada-msg chamada-msg-${mensagem.tipo}`} role="status">
           {mensagem.texto}
         </p>
+      )}
+
+      {historico.length > 0 && (
+        <div className="historico">
+          <h2>Chamadas salvas</h2>
+          <ul className="historico-lista">
+            {historico.map((h) => (
+              <li key={h.id}>
+                <button
+                  type="button"
+                  className={h.data === data ? 'historico-item atual' : 'historico-item'}
+                  onClick={() => trocarData(h.data)}
+                >
+                  <span className="historico-data">
+                    {formatarData(h.data)}
+                    {h.tema ? ` · ${h.tema}` : ''}
+                  </span>
+                  <span className="historico-detalhe">
+                    {h.presentes} presentes · {h.faltas} faltas · {h.justificadas} justificadas
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   )

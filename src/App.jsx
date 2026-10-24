@@ -1,6 +1,7 @@
 import { Routes, Route, NavLink } from 'react-router-dom'
 import Chamada from './pages/Chamada'
 import Catequizandos from './pages/Catequizandos'
+import Turmas from './pages/Turmas'
 import Relatorio from './pages/Relatorio'
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
               Chamada
             </NavLink>
             <NavLink to="/catequizandos">Catequizandos</NavLink>
+            <NavLink to="/turmas">Turmas</NavLink>
             <NavLink to="/relatorio">Relatório</NavLink>
           </nav>
         </div>
@@ -23,6 +25,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Chamada />} />
           <Route path="/catequizandos" element={<Catequizandos />} />
+          <Route path="/turmas" element={<Turmas />} />
           <Route path="/relatorio" element={<Relatorio />} />
         </Routes>
       </main>

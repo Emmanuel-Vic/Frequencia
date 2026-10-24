@@ -46,7 +46,11 @@ export default function Relatorio() {
   // 1) Carrega as turmas
   useEffect(() => {
     async function carregarTurmas() {
-      const { data, error } = await supabase.from('turmas').select('id, nome').order('nome')
+      const { data, error } = await supabase
+        .from('turmas')
+        .select('id, nome')
+        .eq('ativa', true)
+        .order('nome')
 
       if (error) {
         console.error(error)
