@@ -363,3 +363,21 @@ input::placeholder {
   align-items: center;
   gap: 0.5rem;
 }
+
+/* ---------- Login e cabeçalho com botão Sair ---------- */
+.topo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.login-pagina {
+  max-width: 420px;
+  padding-top: 3rem;
+}
+
+.login-form {
+  display: grid;
+  gap: 0.75rem;
+}
