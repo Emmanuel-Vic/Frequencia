@@ -1,0 +1,117 @@
+/* Layout, campos e botões comuns vêm do index.css. Aqui fica só o que é do Relatório. */
+
+.relatorio-filtros {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.relatorio-periodo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.relatorio-filtros .relatorio-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.relatorio-erro {
+  padding: 0.65rem 0.85rem;
+  color: var(--falta-texto);
+  background: var(--falta-fundo);
+  border-radius: var(--raio-pequeno);
+}
+
+.relatorio-aviso {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--just-texto);
+  background: var(--just-fundo);
+  border-radius: var(--raio-pequeno);
+}
+
+.relatorio-resumo {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.relatorio-resumo div {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+.relatorio-resumo strong {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.relatorio-resumo span {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+}
+
+.relatorio-lista {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aluno-linha {
+  padding: 0.75rem 1rem;
+  color: var(--ok-texto);
+  background: var(--ok-fundo);
+  border: 2px solid var(--ok-borda);
+  border-radius: var(--raio);
+}
+
+.aluno-linha.abaixo {
+  color: var(--falta-texto);
+  background: var(--falta-fundo);
+  border-color: var(--falta-borda);
+}
+
+.aluno-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.aluno-linha .aluno-nome {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.aluno-percentual {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.barra {
+  height: 8px;
+  margin: 0.5rem 0;
+  overflow: hidden;
+  background: rgba(127, 127, 127, 0.25);
+  border-radius: 4px;
+}
+
+.barra-preenchida {
+  height: 100%;
+  background: currentColor;
+}
+
+.aluno-detalhe {
+  font-size: 0.85rem;
+}

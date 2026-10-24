@@ -1,0 +1,118 @@
+/* Layout, campos e botões comuns vêm do index.css. Aqui fica só o que é da Chamada. */
+
+.chamada-filtros {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.chamada-aviso {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--just-texto);
+  background: var(--just-fundo);
+  border-radius: var(--raio-pequeno);
+}
+
+.chamada-resumo {
+  margin: 0.5rem 0;
+  font-weight: 700;
+}
+
+.chamada-atalhos {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.chamada-atalhos button {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.chamada-lista {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+/* Botão grande, fácil de tocar no celular */
+.aluno {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 56px;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-width: 2px;
+  border-radius: var(--raio);
+}
+
+.aluno-nome {
+  overflow-wrap: anywhere;
+}
+
+.aluno-status {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.aluno-presente {
+  color: var(--ok-texto);
+  background: var(--ok-fundo);
+  border-color: var(--ok-borda);
+}
+
+.aluno-falta {
+  color: var(--falta-texto);
+  background: var(--falta-fundo);
+  border-color: var(--falta-borda);
+}
+
+.aluno-justificada {
+  color: var(--just-texto);
+  background: var(--just-fundo);
+  border-color: var(--just-borda);
+}
+
+/* Fica visível enquanto o catequista rola a lista */
+.chamada-salvar {
+  position: sticky;
+  bottom: 0.75rem;
+  width: 100%;
+  min-height: 52px;
+  font-weight: 700;
+  color: var(--sobre-primaria);
+  background: var(--primaria);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.chamada-salvar:hover:not(:disabled) {
+  background: var(--primaria-hover);
+}
+
+.chamada-salvar:disabled {
+  cursor: wait;
+}
+
+.chamada-msg {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--raio-pequeno);
+}
+
+.chamada-msg-ok {
+  color: var(--ok-texto);
+  background: var(--ok-fundo);
+}
+
+.chamada-msg-erro {
+  color: var(--falta-texto);
+  background: var(--falta-fundo);
+}
