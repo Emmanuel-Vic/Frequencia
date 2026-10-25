@@ -381,3 +381,46 @@ input::placeholder {
   display: grid;
   gap: 0.75rem;
 }
+
+/* ---------- Tela Equipe ---------- */
+.lista-item > .acoes {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.etiqueta {
+  display: inline-block;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--texto-suave);
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+}
+
+.etiqueta-coord {
+  color: var(--sobre-primaria);
+  background: var(--primaria);
+  border-color: transparent;
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-pequeno);
+}
+
+legend {
+  padding: 0 0.25rem;
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+}
+
+.checks {
+  display: grid;
+  gap: 0.5rem;
+}

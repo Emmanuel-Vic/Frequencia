@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Chamada from './pages/Chamada'
 import Catequizandos from './pages/Catequizandos'
 import Turmas from './pages/Turmas'
+import Equipe from './pages/Equipe'
 import Relatorio from './pages/Relatorio'
 
 // Cabeçalho + navegação, usados por todas as telas depois do login
@@ -27,6 +28,7 @@ function Layout() {
             </NavLink>
             <NavLink to="/catequizandos">Catequizandos</NavLink>
             {ehCoordenador && <NavLink to="/turmas">Turmas</NavLink>}
+            {ehCoordenador && <NavLink to="/equipe">Equipe</NavLink>}
             <NavLink to="/relatorio">Relatório</NavLink>
           </nav>
         </div>
@@ -52,6 +54,7 @@ export default function App() {
 
           <Route element={<RotaPrivada somenteCoordenador />}>
             <Route path="/turmas" element={<Turmas />} />
+            <Route path="/equipe" element={<Equipe />} />
           </Route>
         </Route>
       </Route>
