@@ -115,3 +115,11 @@
 .aluno-detalhe {
   font-size: 0.85rem;
 }
+
+.relatorio-exportar {
+  margin-bottom: 1rem;
+}
+
+.relatorio-exportar button {
+  flex: 1;
+}

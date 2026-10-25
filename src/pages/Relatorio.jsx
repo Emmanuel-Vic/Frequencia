@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { baixarCsv, baixarPdf } from '../lib/exportar'
 import './Relatorio.css'
 
 const TAMANHO_PAGINA = 1000 // limite padrão de linhas por consulta no Supabase
@@ -42,6 +43,7 @@ export default function Relatorio() {
   const [totalEncontros, setTotalEncontros] = useState(0)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
+  const [exportando, setExportando] = useState(false)
 
   // 1) Carrega as turmas
   useEffect(() => {
@@ -161,6 +163,34 @@ export default function Relatorio() {
       : null
   const abaixoDoMinimo = linhas.filter((l) => l.abaixo).length
 
+  const dadosExportacao = {
+    turma: turmas.find((t) => t.id === turmaId)?.nome ?? '',
+    de,
+    ate,
+    minimo,
+    justificadaConta,
+    totalEncontros,
+    media,
+    abaixoDoMinimo,
+    linhas,
+  }
+
+  function exportarCsv() {
+    baixarCsv(dadosExportacao)
+  }
+
+  async function exportarPdf() {
+    setExportando(true)
+    setErro(null)
+    try {
+      await baixarPdf(dadosExportacao)
+    } catch (e) {
+      console.error(e)
+      setErro('Não foi possível gerar o PDF.')
+    }
+    setExportando(false)
+  }
+
   if (!carregando && turmas.length === 0) {
     return (
       <section className="relatorio">
@@ -251,6 +281,15 @@ export default function Relatorio() {
               <strong>{abaixoDoMinimo}</strong>
               <span>abaixo de {minimo}%</span>
             </div>
+          </div>
+
+          <div className="acoes relatorio-exportar">
+            <button type="button" className="botao-primario" onClick={exportarPdf} disabled={exportando}>
+              {exportando ? 'Gerando PDF...' : 'Exportar PDF'}
+            </button>
+            <button type="button" onClick={exportarCsv}>
+              Exportar planilha (CSV)
+            </button>
           </div>
 
           {totalEncontros === 0 && (
