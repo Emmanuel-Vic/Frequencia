@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import ImportarLista from '../components/ImportarLista'
 
 const formVazio = {
   nome: '',
@@ -241,6 +242,8 @@ export default function Catequizandos() {
           {mensagem.texto}
         </p>
       )}
+
+      <ImportarLista turmas={turmas} todos={todos} aoImportar={carregar} />
 
       <div className="filtro-linha">
         <label>
