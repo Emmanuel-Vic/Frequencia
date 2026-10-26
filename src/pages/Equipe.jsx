@@ -13,7 +13,8 @@ const formVazio = {
 
 // Criar conta e redefinir senha passam pela função segura do Supabase (Edge Function)
 async function chamarFuncao(corpo) {
-  const { data, error } = await supabase.functions.invoke('gerenciar-equipe', { body: corpo })
+// "hyper-action" é o endereço da função gerenciar-equipe publicada no Supabase
+  const { data, error } = await supabase.functions.invoke('hyper-action', { body: corpo })
 
   if (error) {
     let mensagem = 'Não foi possível concluir. Verifique se a função gerenciar-equipe foi publicada.'
