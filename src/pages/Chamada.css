@@ -50,6 +50,10 @@
   text-align: left;
   border-width: 2px;
   border-radius: var(--raio);
+  /* Segurar o dedo não seleciona o nome nem abre o menu do navegador */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .aluno-nome {
@@ -80,17 +84,37 @@
   border-color: var(--just-borda);
 }
 
-/* Fica visível enquanto o catequista rola a lista */
-.chamada-salvar {
+/* Barra fixa no rodapé: resumo, aviso e botão Salvar sempre visíveis enquanto a lista rola */
+.chamada-barra {
   position: sticky;
-  bottom: 0.75rem;
+  bottom: 0;
+  z-index: 5;
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 -1rem;
+  padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  background: var(--fundo);
+  border-top: 1px solid var(--borda);
+}
+
+.chamada-barra-resumo {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.chamada-barra .chamada-msg {
+  margin: 0;
+}
+
+.chamada-salvar {
   width: 100%;
   min-height: 52px;
   font-weight: 700;
   color: var(--sobre-primaria);
   background: var(--primaria);
   border-color: transparent;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .chamada-salvar:hover:not(:disabled) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
+import CampoSenha from '../components/CampoSenha'
 
 const formVazio = {
   nome: '',
@@ -13,14 +14,15 @@ const formVazio = {
 
 // Criar conta e redefinir senha passam pela função segura do Supabase (Edge Function)
 async function chamarFuncao(corpo) {
-// "hyper-action" é o endereço da função gerenciar-equipe publicada no Supabase
   const { data, error } = await supabase.functions.invoke('hyper-action', { body: corpo })
 
   if (error) {
+    console.error('Erro ao chamar a função gerenciar-equipe:', error)
     let mensagem = 'Não foi possível concluir. Verifique se a função gerenciar-equipe foi publicada.'
     try {
       const resposta = await error.context.json()
       if (resposta?.erro) mensagem = resposta.erro
+      else if (resposta?.message) mensagem = `Erro da função: ${resposta.message}`
     } catch {
       // mantém a mensagem padrão
     }
@@ -212,13 +214,22 @@ export default function Equipe() {
 
         <label className="largura-total">
           Nome
-          <input value={form.nome} onChange={(e) => atualizar('nome', e.target.value)} required />
+          <input
+            value={form.nome}
+            autoCapitalize="words"
+            onChange={(e) => atualizar('nome', e.target.value)}
+            required
+          />
         </label>
 
         <label className="largura-total">
           E-mail (usado para entrar)
           <input
             type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             autoComplete="off"
             value={form.email}
             disabled={Boolean(editandoId)}
@@ -227,16 +238,13 @@ export default function Equipe() {
           />
         </label>
 
-        <label>
-          {editandoId ? 'Nova senha (vazio mantém a atual)' : 'Senha provisória'}
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={form.senha}
-            onChange={(e) => atualizar('senha', e.target.value)}
-            required={!editandoId}
-          />
-        </label>
+        <CampoSenha
+          rotulo={editandoId ? 'Nova senha (vazio mantém a atual)' : 'Senha provisória'}
+          autoComplete="new-password"
+          value={form.senha}
+          onChange={(e) => atualizar('senha', e.target.value)}
+          required={!editandoId}
+        />
 
         <label>
           Papel

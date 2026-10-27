@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth-context'
+import CampoSenha from '../components/CampoSenha'
 
 export default function Login() {
   const { usuario, carregando } = useAuth()
@@ -40,23 +41,24 @@ export default function Login() {
           E-mail
           <input
             type="email"
+            inputMode="email"
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
         </label>
 
-        <label>
-          Senha
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-          />
-        </label>
+        <CampoSenha
+          rotulo="Senha"
+          autoComplete="current-password"
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+          required
+        />
 
         <button type="submit" disabled={entrando}>
           {entrando ? 'Entrando...' : 'Entrar'}

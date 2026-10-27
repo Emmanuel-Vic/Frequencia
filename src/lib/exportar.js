@@ -92,7 +92,7 @@ export function baixarCsv({
 
 // ---------- PDF ----------
 
-export async function baixarPdf({
+async function gerarPdf({
   turma,
   de,
   ate,
@@ -180,5 +180,32 @@ export async function baixarPdf({
     })
   }
 
-  doc.save(nomeDoArquivo(turma, 'pdf'))
+  return { blob: doc.output('blob'), nome: nomeDoArquivo(turma, 'pdf') }
+}
+
+export async function baixarPdf(dados) {
+  const { blob, nome } = await gerarPdf(dados)
+  baixarArquivo(blob, nome)
+}
+
+// O menu de compartilhar do celular (WhatsApp, e-mail...) só existe em alguns navegadores
+export function suportaCompartilhar() {
+  try {
+    const teste = new File([''], 'teste.pdf', { type: 'application/pdf' })
+    return Boolean(navigator.canShare && navigator.share && navigator.canShare({ files: [teste] }))
+  } catch {
+    return false
+  }
+}
+
+export async function compartilharPdf(dados) {
+  const { blob, nome } = await gerarPdf(dados)
+  const arquivo = new File([blob], nome, { type: 'application/pdf' })
+
+  try {
+    await navigator.share({ files: [arquivo], title: 'Relatório de frequência' })
+  } catch (erro) {
+    if (erro.name === 'AbortError') return // a pessoa fechou o menu de compartilhar
+    baixarArquivo(blob, nome) // não deu para compartilhar: baixa o arquivo
+  }
 }

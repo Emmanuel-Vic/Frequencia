@@ -51,7 +51,17 @@ export default function AuthProvider({ children }) {
     perfil,
     ehCoordenador: perfil?.papel === 'coordenador' && perfil?.ativo === true,
     carregando,
-    sair: () => supabase.auth.signOut(),
+    sair: () => {
+      // Apaga os rascunhos de chamada deste aparelho, para não aparecerem para a próxima pessoa
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith('rascunho-chamada:'))
+          .forEach((k) => localStorage.removeItem(k))
+      } catch {
+        // armazenamento bloqueado: segue com a saída normal
+      }
+      return supabase.auth.signOut()
+    },
   }
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

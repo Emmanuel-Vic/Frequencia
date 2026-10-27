@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { baixarCsv, baixarPdf } from '../lib/exportar'
+import { baixarCsv, baixarPdf, compartilharPdf, suportaCompartilhar } from '../lib/exportar'
+import { linkWhatsApp } from '../lib/telefone'
 import './Relatorio.css'
 
 const TAMANHO_PAGINA = 1000 // limite padrão de linhas por consulta no Supabase
@@ -28,6 +29,12 @@ async function buscarPresencas(turmaId, de, ate) {
   }
 
   return { data: todas }
+}
+
+// Mensagem pronta para o responsável (a pessoa pode editar antes de enviar)
+function mensagemAviso(linha) {
+  const primeiroNome = linha.nome.split(' ')[0]
+  return `Olá! Aqui é da catequese. Notamos que ${primeiroNome} tem faltado a alguns encontros (frequência de ${Math.round(linha.percentual)}%). Está tudo bem? Podemos ajudar em algo?`
 }
 
 export default function Relatorio() {
@@ -87,7 +94,7 @@ export default function Relatorio() {
       const [resAlunos, resEncontros, resPresencas] = await Promise.all([
         supabase
           .from('catequizandos')
-          .select('id, nome')
+          .select('id, nome, responsavel, telefone')
           .eq('turma_id', turmaId)
           .eq('ativo', true)
           .order('nome'),
@@ -109,7 +116,15 @@ export default function Relatorio() {
       const contagem = Object.fromEntries(
         resAlunos.data.map((a) => [
           a.id,
-          { id: a.id, nome: a.nome, presentes: 0, faltas: 0, justificadas: 0 },
+          {
+            id: a.id,
+            nome: a.nome,
+            responsavel: a.responsavel,
+            telefone: a.telefone,
+            presentes: 0,
+            faltas: 0,
+            justificadas: 0,
+          },
         ])
       )
 
@@ -177,6 +192,18 @@ export default function Relatorio() {
 
   function exportarCsv() {
     baixarCsv(dadosExportacao)
+  }
+
+  async function compartilhar() {
+    setExportando(true)
+    setErro(null)
+    try {
+      await compartilharPdf(dadosExportacao)
+    } catch (e) {
+      console.error(e)
+      setErro('Não foi possível compartilhar o PDF.')
+    }
+    setExportando(false)
   }
 
   async function exportarPdf() {
@@ -287,6 +314,11 @@ export default function Relatorio() {
             <button type="button" className="botao-primario" onClick={exportarPdf} disabled={exportando}>
               {exportando ? 'Gerando PDF...' : 'Exportar PDF'}
             </button>
+            {suportaCompartilhar() && (
+              <button type="button" onClick={compartilhar} disabled={exportando}>
+                Compartilhar PDF
+              </button>
+            )}
             <button type="button" onClick={exportarCsv}>
               Exportar planilha (CSV)
             </button>
@@ -324,6 +356,19 @@ export default function Relatorio() {
                   {l.presentes} presenças, {l.faltas} faltas, {l.justificadas} justificadas
                   {l.abaixo && <strong className="aluno-alerta"> Abaixo do mínimo</strong>}
                 </div>
+
+                {l.abaixo && linkWhatsApp(l.telefone) && (
+                  <div className="contatos">
+                    <a
+                      className="link-acao"
+                      href={linkWhatsApp(l.telefone, mensagemAviso(l))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Avisar responsável pelo WhatsApp
+                    </a>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

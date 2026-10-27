@@ -23,6 +23,50 @@ function formatarData(iso) {
   return iso.split('-').reverse().join('/')
 }
 
+// Para a busca: ignora maiúsculas e acentos
+function simplificar(texto) {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+// ---------- Rascunho no aparelho ----------
+// Guarda as marcações ainda não salvas, para não perdê-las se a página recarregar.
+// Fica só neste aparelho, por até 24 horas, e é apagado ao salvar ou ao sair da conta.
+const VALIDADE_RASCUNHO = 24 * 60 * 60 * 1000
+
+function chaveRascunho(turmaId, data) {
+  return `rascunho-chamada:${turmaId}:${data}`
+}
+
+function lerRascunho(chave) {
+  try {
+    const r = JSON.parse(localStorage.getItem(chave))
+    if (!r || Date.now() - r.em > VALIDADE_RASCUNHO) return null
+    return r
+  } catch {
+    return null
+  }
+}
+
+function gravarRascunho(chave, dados) {
+  try {
+    localStorage.setItem(chave, JSON.stringify({ ...dados, em: Date.now() }))
+  } catch {
+    // sem espaço ou armazenamento bloqueado: segue sem rascunho
+  }
+}
+
+function apagarRascunho(chave) {
+  try {
+    localStorage.removeItem(chave)
+  } catch {
+    // ignora
+  }
+}
+
 export default function Chamada() {
   const [turmas, setTurmas] = useState([])
   const [turmaId, setTurmaId] = useState('')
@@ -30,10 +74,14 @@ export default function Chamada() {
   const [tema, setTema] = useState('')
   const [alunos, setAlunos] = useState([])
   const [status, setStatus] = useState({}) // { idDoAluno: 'presente' | 'falta' | 'justificada' }
+  const [busca, setBusca] = useState('')
   const [encontroId, setEncontroId] = useState(null) // id do encontro salvo (se houver)
   const [alterado, setAlterado] = useState(false) // há marcações ainda não salvas?
+  const [recuperado, setRecuperado] = useState(false) // as marcações vieram de um rascunho?
+  const [salvoRecente, setSalvoRecente] = useState(false) // mostra "Salvo ✓" por alguns segundos
   const [historico, setHistorico] = useState([])
   const [versao, setVersao] = useState(0) // aumenta quando o histórico precisa recarregar
+  const [cargaVersao, setCargaVersao] = useState(0) // aumenta para recarregar a chamada do banco
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [excluindo, setExcluindo] = useState(false)
@@ -120,11 +168,28 @@ export default function Chamada() {
       }
 
       // Quem não tem registro começa como "presente"
+      const base = Object.fromEntries(lista.map((a) => [a.id, salvos[a.id] ?? 'presente']))
+      let statusFinal = base
+      let temaFinal = encontro?.tema ?? ''
+
+      // Se sobrou um rascunho deste dia (a página recarregou antes de salvar), recupera
+      const rascunho = lerRascunho(chaveRascunho(turmaId, data))
+      if (rascunho) {
+        statusFinal = Object.fromEntries(
+          lista.map((a) => {
+            const valor = rascunho.status?.[a.id]
+            return [a.id, Object.hasOwn(ROTULO, valor) ? valor : base[a.id]]
+          })
+        )
+        if (typeof rascunho.tema === 'string') temaFinal = rascunho.tema
+      }
+
       setAlunos(lista)
-      setStatus(Object.fromEntries(lista.map((a) => [a.id, salvos[a.id] ?? 'presente'])))
-      setTema(encontro?.tema ?? '')
+      setStatus(statusFinal)
+      setTema(temaFinal)
       setEncontroId(encontro?.id ?? null)
-      setAlterado(false)
+      setAlterado(Boolean(rascunho))
+      setRecuperado(Boolean(rascunho))
       setCarregando(false)
     }
 
@@ -132,7 +197,7 @@ export default function Chamada() {
     return () => {
       cancelado = true
     }
-  }, [turmaId, data])
+  }, [turmaId, data, cargaVersao])
 
   // 3) Histórico: as últimas chamadas salvas da turma
   useEffect(() => {
@@ -171,29 +236,69 @@ export default function Chamada() {
     }
   }, [turmaId, versao])
 
+  // 4) Guarda o rascunho no aparelho enquanto há marcações sem salvar
+  useEffect(() => {
+    if (!alterado || carregando || !turmaId) return
+    gravarRascunho(chaveRascunho(turmaId, data), { status, tema })
+  }, [alterado, carregando, turmaId, data, status, tema])
+
+  // 5) Avisa antes de fechar ou recarregar a página com marcações sem salvar
+  useEffect(() => {
+    if (!alterado) return
+    function avisar(e) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', avisar)
+    return () => window.removeEventListener('beforeunload', avisar)
+  }, [alterado])
+
+  // 6) "Salvo ✓" some depois de 3 segundos
+  useEffect(() => {
+    if (!salvoRecente) return
+    const t = setTimeout(() => setSalvoRecente(false), 3000)
+    return () => clearTimeout(t)
+  }, [salvoRecente])
+
   // Evita perder marcações por engano ao trocar de turma ou de data
   function podeDescartar() {
-    return !alterado || window.confirm('Há marcações que ainda não foram salvas. Descartar e continuar?')
+    if (!alterado) return true
+    const ok = window.confirm('Há marcações que ainda não foram salvas. Descartar e continuar?')
+    if (ok) apagarRascunho(chaveRascunho(turmaId, data))
+    return ok
   }
 
   function trocarTurma(id) {
     if (id === turmaId || !podeDescartar()) return
+    setAlterado(false)
+    setBusca('')
     setTurmaId(id)
   }
 
   function trocarData(novaData) {
     if (!novaData || novaData === data || !podeDescartar()) return
+    setAlterado(false)
     setData(novaData)
   }
 
+  function descartarRascunho() {
+    apagarRascunho(chaveRascunho(turmaId, data))
+    setAlterado(false)
+    setRecuperado(false)
+    setCargaVersao((v) => v + 1)
+  }
+
   function alternar(id) {
+    if (navigator.vibrate) navigator.vibrate(15) // toque curto de confirmação (Android)
     setMensagem(null)
+    setSalvoRecente(false)
     setAlterado(true)
     setStatus((s) => ({ ...s, [id]: CICLO[s[id]] }))
   }
 
   function marcarTodos(valor) {
     setMensagem(null)
+    setSalvoRecente(false)
     setAlterado(true)
     setStatus(Object.fromEntries(alunos.map((a) => [a.id, valor])))
   }
@@ -240,8 +345,11 @@ export default function Chamada() {
       return
     }
 
+    apagarRascunho(chaveRascunho(turmaId, data))
     setEncontroId(encontro.id)
     setAlterado(false)
+    setRecuperado(false)
+    setSalvoRecente(true)
     setVersao((v) => v + 1)
     setMensagem({ tipo: 'ok', texto: 'Chamada salva.' })
   }
@@ -268,10 +376,12 @@ export default function Chamada() {
       return
     }
 
+    apagarRascunho(chaveRascunho(turmaId, data))
     setStatus(Object.fromEntries(alunos.map((a) => [a.id, 'presente'])))
     setTema('')
     setEncontroId(null)
     setAlterado(false)
+    setRecuperado(false)
     setVersao((v) => v + 1)
     setMensagem({ tipo: 'ok', texto: 'Chamada excluída.' })
   }
@@ -281,6 +391,16 @@ export default function Chamada() {
   const faltas = alunos.filter((a) => status[a.id] === 'falta').length
   const justificadas = alunos.filter((a) => status[a.id] === 'justificada').length
   const ocupado = salvando || excluindo
+  const mostrarBarra = !carregando && total > 0
+
+  const termo = simplificar(busca)
+  const visiveis = termo ? alunos.filter((a) => simplificar(a.nome).includes(termo)) : alunos
+
+  const blocoMensagem = mensagem && (
+    <p className={`chamada-msg chamada-msg-${mensagem.tipo}`} role="status">
+      {mensagem.texto}
+    </p>
+  )
 
   if (!carregando && turmas.length === 0) {
     return (
@@ -324,8 +444,10 @@ export default function Chamada() {
             type="text"
             value={tema}
             placeholder="Ex.: Os sacramentos"
+            autoCapitalize="sentences"
             onChange={(e) => {
               setTema(e.target.value)
+              setSalvoRecente(false)
               setAlterado(true)
             }}
           />
@@ -334,6 +456,15 @@ export default function Chamada() {
 
       {jaSalva && !carregando && (
         <p className="chamada-aviso">Já existe uma chamada salva neste dia. Ao salvar, ela será atualizada.</p>
+      )}
+
+      {recuperado && alterado && !carregando && (
+        <p className="chamada-aviso">
+          <span>Recuperamos marcações que não tinham sido salvas.</span>
+          <button type="button" className="botao-pequeno" onClick={descartarRascunho}>
+            Descartar
+          </button>
+        </p>
       )}
 
       {carregando ? (
@@ -345,58 +476,81 @@ export default function Chamada() {
         </p>
       ) : (
         <>
-          <p className="chamada-resumo">
-            {presentes} presentes · {faltas} faltas · {justificadas} justificadas (de {total})
-          </p>
-
-          {alterado && <p className="chamada-aviso">Há marcações que ainda não foram salvas.</p>}
-
           <div className="chamada-atalhos">
-            <button type="button" onClick={() => marcarTodos('presente')}>
+            <button type="button" onClick={() => marcarTodos('presente')} disabled={Boolean(termo)}>
               Todos presentes
             </button>
-            <button type="button" onClick={() => marcarTodos('falta')}>
+            <button type="button" onClick={() => marcarTodos('falta')} disabled={Boolean(termo)}>
               Todos com falta
             </button>
           </div>
 
-          <ul className="chamada-lista">
-            {alunos.map((a) => (
-              <li key={a.id}>
-                <button
-                  type="button"
-                  className={`aluno aluno-${status[a.id]}`}
-                  onClick={() => alternar(a.id)}
-                >
-                  <span className="aluno-nome">{a.nome}</span>
-                  <span className="aluno-status">{ROTULO[status[a.id]]}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {total > 8 && (
+            <label className="chamada-busca">
+              Buscar nome
+              <input
+                type="search"
+                value={busca}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                onChange={(e) => setBusca(e.target.value)}
+              />
+            </label>
+          )}
 
-          <button type="button" className="chamada-salvar" onClick={salvar} disabled={ocupado}>
-            {salvando ? 'Salvando...' : jaSalva ? 'Atualizar chamada' : 'Salvar chamada'}
-          </button>
-
-          {jaSalva && (
-            <button
-              type="button"
-              className="botao-perigo chamada-excluir"
-              onClick={excluir}
-              disabled={ocupado}
-            >
-              {excluindo ? 'Excluindo...' : 'Excluir esta chamada'}
-            </button>
+          {visiveis.length === 0 ? (
+            <p className="vazio">Nenhum nome encontrado.</p>
+          ) : (
+            <ul className="chamada-lista">
+              {visiveis.map((a) => (
+                <li key={a.id}>
+                  <button
+                    type="button"
+                    className={`aluno aluno-${status[a.id]}`}
+                    onClick={() => alternar(a.id)}
+                  >
+                    <span className="aluno-nome">{a.nome}</span>
+                    <span className="aluno-status">{ROTULO[status[a.id]]}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </>
       )}
 
-      {mensagem && (
-        <p className={`chamada-msg chamada-msg-${mensagem.tipo}`} role="status">
-          {mensagem.texto}
-        </p>
+      {mostrarBarra && (
+        <div className="chamada-barra">
+          {blocoMensagem}
+          <p className="chamada-barra-resumo">
+            {presentes} presentes · {faltas} faltas · {justificadas} justificadas
+            {alterado ? ' · não salvo' : ''}
+          </p>
+          <button type="button" className="chamada-salvar" onClick={salvar} disabled={ocupado}>
+            {salvando
+              ? 'Salvando...'
+              : salvoRecente
+                ? 'Salvo ✓'
+                : jaSalva
+                  ? 'Atualizar chamada'
+                  : 'Salvar chamada'}
+          </button>
+        </div>
       )}
+
+      {mostrarBarra && jaSalva && (
+        <button
+          type="button"
+          className="botao-perigo chamada-excluir"
+          onClick={excluir}
+          disabled={ocupado}
+        >
+          {excluindo ? 'Excluindo...' : 'Excluir esta chamada'}
+        </button>
+      )}
+
+      {!mostrarBarra && blocoMensagem}
 
       {historico.length > 0 && (
         <div className="historico">

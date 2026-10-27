@@ -195,6 +195,7 @@ export default function Turmas() {
           <input
             value={form.nome}
             placeholder="Ex.: Crisma 1"
+            autoCapitalize="words"
             onChange={(e) => atualizar('nome', e.target.value)}
             required
           />

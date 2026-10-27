@@ -68,6 +68,10 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Não deixa o cabeçalho fixo cobrir o campo que ganhou foco */
+  scroll-padding-top: 7rem;
+  /* Puxar a tela para baixo não recarrega a página (perderia marcações) */
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -78,6 +82,7 @@ body {
   line-height: 1.5;
   color: var(--texto);
   background: var(--fundo);
+  overscroll-behavior-y: contain;
 }
 
 #root {
@@ -121,7 +126,7 @@ small {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 0.6rem 1rem;
+  padding: calc(0.6rem + env(safe-area-inset-top, 0px)) 1rem 0.6rem;
   background: var(--superficie);
   border-bottom: 1px solid var(--borda);
 }
@@ -169,7 +174,7 @@ small {
 main {
   max-width: 640px;
   margin: 0 auto;
-  padding: 1.25rem 1rem 4rem;
+  padding: 1.25rem 1rem calc(4rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* ---------- Formulários ---------- */
@@ -476,4 +481,63 @@ legend {
 
 .previa-aviso {
   color: var(--just-texto);
+}
+
+/* ---------- Toque no celular ---------- */
+/* Evita o zoom por toque duplo ao marcar vários nomes seguidos */
+:where(button, a, label, select, input) {
+  touch-action: manipulation;
+}
+
+/* ---------- Campo de senha com botão Mostrar ---------- */
+.campo {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.campo-senha {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.campo-senha input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Telefone e WhatsApp ---------- */
+.contatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.link-acao {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--primaria);
+  border: 1px solid currentColor;
+  border-radius: var(--raio-pequeno);
+}
+
+.aluno-linha .link-acao {
+  color: inherit;
+}
+
+.chamada-busca {
+  margin-bottom: 0.75rem;
+}
+
+.chamada-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }

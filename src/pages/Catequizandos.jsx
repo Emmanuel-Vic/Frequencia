@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import ImportarLista from '../components/ImportarLista'
+import { linkLigar, linkWhatsApp } from '../lib/telefone'
 
 const formVazio = {
   nome: '',
@@ -173,6 +174,7 @@ export default function Catequizandos() {
           Nome completo
           <input
             value={form.nome}
+            autoCapitalize="words"
             onChange={(e) => atualizar('nome', e.target.value)}
             required
           />
@@ -208,6 +210,7 @@ export default function Catequizandos() {
           Responsável
           <input
             value={form.responsavel}
+            autoCapitalize="words"
             onChange={(e) => atualizar('responsavel', e.target.value)}
           />
         </label>
@@ -216,6 +219,7 @@ export default function Catequizandos() {
           Telefone
           <input
             type="tel"
+            inputMode="tel"
             value={form.telefone}
             onChange={(e) => atualizar('telefone', e.target.value)}
           />
@@ -286,12 +290,28 @@ export default function Catequizandos() {
             const detalhes = [c.turmas?.nome ?? 'Sem turma', c.responsavel, c.telefone]
               .filter(Boolean)
               .join(' · ')
+            const ligar = c.ativo ? linkLigar(c.telefone) : null
+            const whatsapp = c.ativo ? linkWhatsApp(c.telefone) : null
 
             return (
               <li key={c.id} className={c.ativo ? 'lista-item' : 'lista-item inativo'}>
                 <div>
                   <span className="lista-nome">{c.nome}</span>
                   <small>{detalhes}</small>
+                  {(ligar || whatsapp) && (
+                    <span className="contatos">
+                      {ligar && (
+                        <a className="link-acao" href={ligar}>
+                          Ligar
+                        </a>
+                      )}
+                      {whatsapp && (
+                        <a className="link-acao" href={whatsapp} target="_blank" rel="noopener noreferrer">
+                          WhatsApp
+                        </a>
+                      )}
+                    </span>
+                  )}
                 </div>
                 <div className="acoes">
                   {c.ativo ? (
